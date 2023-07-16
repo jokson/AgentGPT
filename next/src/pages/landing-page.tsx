@@ -1,18 +1,24 @@
 import React from "react";
-import NavLayout from "../components/NavLayout";
+import NavBar from "../components/NavBar";
 import Hero from "../components/landing/Hero";
+import FooterLinks from "../components/landing/FooterLinks";
+import Backing from "../components/landing/Backing";
 
 const HomePage = () => {
   return (
-    <NavLayout>
-      <div className="flex w-full justify-center">
-        <div className="flex max-w-screen-xl flex-col items-center justify-center overflow-x-hidden px-5 text-white">
-          <div className="flex h-screen w-full flex-col items-start justify-center overflow-x-hidden px-4 text-white lg:pl-16">
-            <Hero />
-          </div>
+    <div className="min-w-screen flex min-h-screen flex-col justify-between px-4 lg:px-12 lg:py-4">
+      <NavBar />
+      <main>
+        <Hero className="ml-16" />
+      </main>
+      <footer className="flex flex-col items-center gap-4 pb-4 lg:flex-row lg:pb-0">
+        <Backing className="flex-grow" />
+        <FooterLinks />
+        <div className="font-inter text-sm font-normal text-white/50 lg:order-first">
+          &copy; 2023 Reworkd AI, Inc.
         </div>
-      </div>
-    </NavLayout>
+      </footer>
+    </div>
   );
 };
 

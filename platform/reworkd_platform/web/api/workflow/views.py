@@ -1,13 +1,16 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from reworkd_platform.db.crud.workflow import WorkflowCRUD
-from reworkd_platform.web.api.workflow.schemas import (
+from reworkd_platform.schemas.workflow.base import (
     Workflow,
     WorkflowUpdate,
     WorkflowFull,
 )
+from reworkd_platform.services.kafka.producers.task_producer import WorkflowTaskProducer
+from reworkd_platform.services.networkx import validate_connected_and_acyclic
+from reworkd_platform.services.worker.exec import ExecutionEngine
 
 router = APIRouter()
 
@@ -44,5 +47,26 @@ async def update_workflow(
     workflow: WorkflowUpdate,
     crud: WorkflowCRUD = Depends(WorkflowCRUD.inject),
 ) -> str:
-    """Update a workflow by id."""
+    try:
+        validate_connected_and_acyclic(workflow.to_graph())
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
     return await crud.update(workflow_id, workflow)
+
+
+@router.post("/{workflow_id}/execute")
+async def trigger_workflow(
+    workflow_id: str,
+    producer: WorkflowTaskProducer = Depends(WorkflowTaskProducer.inject),
+    crud: WorkflowCRUD = Depends(WorkflowCRUD.inject),
+) -> str:
+    """Trigger a workflow by id."""
+    workflow = await crud.get(workflow_id)
+
+    await ExecutionEngine.create_execution_plan(
+        producer=producer,
+        workflow=workflow,
+    ).start()
+
+    return "OK"

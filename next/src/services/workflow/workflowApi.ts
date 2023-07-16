@@ -9,10 +9,11 @@ const WorkflowMetaSchema = z.object({
   description: z.string(),
 });
 
-type WorkflowMeta = z.infer<typeof WorkflowMetaSchema>;
+export type WorkflowMeta = z.infer<typeof WorkflowMetaSchema>;
 
 export default class WorkflowApi {
   readonly accessToken?: string;
+
   constructor(accessToken?: string) {
     this.accessToken = accessToken;
   }
@@ -26,10 +27,14 @@ export default class WorkflowApi {
   }
 
   async update(id: string, data: Workflow) {
-    return await put(`/api/workflow/${id}`, z.any(), data, this.accessToken);
+    return await put(`/api/workflow/${id}`, z.string(), data, this.accessToken);
   }
 
   async create(workflow: Omit<WorkflowMeta, "id">) {
     return await post("/api/workflow", WorkflowMetaSchema, workflow, this.accessToken);
+  }
+
+  async execute(id: string) {
+    return await post(`/api/workflow/${id}/execute`, z.string(), {}, this.accessToken);
   }
 }

@@ -1,26 +1,33 @@
-import type { DisplayProps } from "./Sidebar";
-import Sidebar from "./Sidebar";
-import { FaBars, FaTimesCircle } from "react-icons/fa";
-import React from "react";
-import { useAgentStore } from "../../stores";
-import { useTaskStore } from "../../stores/taskStore";
+import clsx from "clsx";
+import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "next-i18next";
+import React from "react";
+import { FaBars, FaTimesCircle } from "react-icons/fa";
 import { v1 } from "uuid";
+
+import Sidebar from "./Sidebar";
+import { useAgentStore } from "../../stores";
+import { useConfigStore } from "../../stores/configStore";
+import { useTaskStore } from "../../stores/taskStore";
 import type { Task as TaskType } from "../../types/task";
 import { MESSAGE_TYPE_TASK, TASK_STATUS_STARTED } from "../../types/task";
-import FadeIn from "../motions/FadeIn";
-import clsx from "clsx";
-import { getMessageContainerStyle, getTaskStatusIcon } from "../utils/helpers";
-import { AnimatePresence } from "framer-motion";
-import Input from "../Input";
 import Button from "../Button";
+import Input from "../Input";
+import FadeIn from "../motions/FadeIn";
+import { getMessageContainerStyle, getTaskStatusIcon } from "../utils/helpers";
 
-const TaskSidebar = ({ show, setShow }: DisplayProps) => {
+const TaskSidebar = () => {
   const [customTask, setCustomTask] = React.useState("");
   const agent = useAgentStore.use.agent();
   const tasks = useTaskStore.use.tasks();
   const addTask = useTaskStore.use.addTask();
   const [t] = useTranslation();
+
+  const { layout, setLayout } = useConfigStore();
+
+  const setShow = (show: boolean) => {
+    setLayout({ showRightSidebar: show });
+  };
 
   const handleAddTask = () => {
     addTask({
@@ -34,12 +41,12 @@ const TaskSidebar = ({ show, setShow }: DisplayProps) => {
   };
 
   return (
-    <Sidebar show={show} setShow={setShow} side="right">
+    <Sidebar show={layout.showRightSidebar} setShow={setShow} side="right">
       <div className="flex h-screen flex-col gap-2 text-white">
         <div className="flex flex-row items-center gap-1">
           <button
             className="neutral-button-primary rounded-md border-none transition-all"
-            onClick={() => setShow(!show)}
+            onClick={() => setShow(!layout.showRightSidebar)}
           >
             <FaBars size="15" className="z-20 m-2" />
           </button>

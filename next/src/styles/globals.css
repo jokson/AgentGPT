@@ -6,8 +6,25 @@ body {
     background: black;
 }
 
+.resend-font-effect-hero {
+    /* #Resend */
+    -webkit-text-fill-color: transparent;
+    text-shadow: -1px -1px 0 hsla(0, 0%, 100%, .15), 1px 1px 0 rgba(0, 0, 0, .1);
+}
+
+.border-gradient {
+    /* Mark as important to override react flow styling */
+    background: linear-gradient(black, black) padding-box,
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15)) border-box !important;
+    border: 1px solid transparent !important;
+}
+
 .radial-background-1 {
     background-image: radial-gradient(at 170% 0%, rgb(49, 46, 129) 0, transparent 69%), radial-gradient(at 0% -30%, rgb(21, 94, 117) 0, transparent 50%);
+}
+
+.after-gradient::after {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .8) 47.92%, rgba(255, 255, 255, 0));
 }
 
 .lower-gradient {
@@ -135,11 +152,11 @@ tr:nth-child(even) {
 
     /* border styles */
     .border-color-1 {
-        @apply dark:border-shade-400-dark border-shade-600-light
+        @apply dark:border-shade-500-dark border-shade-600-light
     }
 
     .border-color-2 {
-        @apply dark:border-shade-400-dark border-blue-base-light
+        @apply dark:border-shade-400-dark border-shade-700-light
     }
 
     .border-color-success {
@@ -151,11 +168,11 @@ tr:nth-child(even) {
     }
 
     .border-style-1 {
-        @apply border-color-1 rounded-xl border-2;
+        @apply border-color-2 rounded-xl border;
     }
 
     .border-hover-1 {
-        @apply hover:border-blue-hover-light dark:hover:border-blue-hover-dark focus:ring-0 border-2;
+        @apply hover:border-blue-hover-light dark:hover:border-blue-hover-dark focus:ring-0 border;
     }
 
     .border-hover-success {
@@ -167,7 +184,7 @@ tr:nth-child(even) {
     }
 
     .border-focusVisible-1 {
-        @apply focus-visible:border-blue-focusVisible-light dark:focus-visible:border-blue-focusVisible-dark focus:ring-0 border-2 focus-visible:ring-offset-0;
+        @apply focus-visible:border-blue-focusVisible-light dark:focus-visible:border-blue-focusVisible-dark focus:ring-0 border focus-visible:ring-offset-0;
     }
 
     .border-focusVisible-1[type=range] {
@@ -297,4 +314,25 @@ Not supports in Firefox and IE */
 
 .animate-border-pulse {
     animation: border-pulse-animation 2s infinite;
+}
+
+@keyframes moveBackground {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 100% 0;
+    }
+}
+
+.bg-stars {
+    animation: moveBackground 30s linear infinite;
+    background: url("/stars.svg");
+    background-size: cover;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
 }

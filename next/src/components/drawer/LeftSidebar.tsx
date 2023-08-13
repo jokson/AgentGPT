@@ -1,17 +1,18 @@
 import Image from "next/image";
-import { FaBars } from "react-icons/fa";
-import FadingHr from "../FadingHr";
-import { DrawerItemButton, DrawerItemButtonLoader } from "./DrawerItemButton";
-import { PAGE_LINKS, SOCIAL_LINKS } from "../sidebar/links";
-import LinkItem from "../sidebar/LinkItem";
-import LinkIconItem from "../sidebar/LinkIconItem";
-import AuthItem from "../sidebar/AuthItem";
 import { useRouter } from "next/router";
-import { useAuth } from "../../hooks/useAuth";
 import { useTranslation } from "next-i18next";
-import { api } from "../../utils/api";
+import { FaBars } from "react-icons/fa";
+
+import { DrawerItemButton, DrawerItemButtonLoader } from "./DrawerItemButton";
 import type { DisplayProps } from "./Sidebar";
 import Sidebar from "./Sidebar";
+import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../utils/api";
+import FadingHr from "../FadingHr";
+import AuthItem from "../sidebar/AuthItem";
+import LinkIconItem from "../sidebar/LinkIconItem";
+import LinkItem from "../sidebar/LinkItem";
+import { PAGE_LINKS, SOCIAL_LINKS } from "../sidebar/links";
 
 const LeftSidebar = ({ show, setShow }: DisplayProps) => {
   const router = useRouter();
@@ -25,26 +26,26 @@ const LeftSidebar = ({ show, setShow }: DisplayProps) => {
 
   return (
     <Sidebar show={show} setShow={setShow} side="left">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center">
         <Image
           src="/logos/dark-default-solid.svg"
-          width="25"
-          height="25"
+          width="18"
+          height="18"
           alt="Reworkd AI"
-          className="ml-2 invert dark:invert-0"
+          className=" ml-2 invert dark:invert-0"
         />
-        <h1 className="text-color-primary font-mono font-extrabold">My Agents</h1>
+        <h1 className="text-color-primary ml-2 font-medium">Reworkd</h1>
         <button
-          className="neutral-button-primary rounded-md border-none transition-all"
+          className="neutral-button-primary ml-auto rounded-md border-none transition-all"
           onClick={() => setShow(!show)}
         >
           <FaBars size="15" className="z-20 m-2" />
         </button>
       </div>
       <FadingHr className="my-2" />
-      <div className="mb-2 mr-2 flex-1 overflow-y-auto">
+      <div className="mb-2 mr-2 flex-1 overflow-y-auto overflow-x-hidden overflow-ellipsis">
         {status === "unauthenticated" && (
-          <div className="text-color-primary p-1 font-mono text-sm">
+          <div className="text-color-primary p-1 text-sm">
             <a className="link" onClick={() => void signIn()}>
               {t("SIGN_IN")}
             </a>{" "}
@@ -52,7 +53,7 @@ const LeftSidebar = ({ show, setShow }: DisplayProps) => {
           </div>
         )}
         {status === "authenticated" && !isLoading && userAgents.length === 0 && (
-          <div className="text-color-primary p-1 font-mono text-sm">
+          <div className="text-color-primary p-1 text-sm">
             {t("NEED_TO_SIGN_IN_AND_CREATE_AGENT_FIRST")}
           </div>
         )}
@@ -69,7 +70,7 @@ const LeftSidebar = ({ show, setShow }: DisplayProps) => {
         {userAgents.map((agent, index) => (
           <DrawerItemButton
             key={`${index}-${agent.name}`}
-            className="flex w-full rounded-md p-2 font-mono text-sm font-semibold"
+            className="flex w-full rounded-md p-2 text-sm font-semibold"
             text={agent.name}
             onClick={() => void router.push(`/agent?id=${agent.id}`)}
           />
@@ -78,7 +79,11 @@ const LeftSidebar = ({ show, setShow }: DisplayProps) => {
       <ul role="list" className="flex flex-col">
         <ul className="mb-2">
           <div className="text-color-secondary mb-2 ml-2 text-xs font-semibold">Pages</div>
-          {PAGE_LINKS.filter((link) => link.enabled && router.route != link.href).map((link, i) => (
+          {PAGE_LINKS.filter(
+            (link) =>
+              (typeof link.enabled === "boolean" ? link.enabled : link.enabled(session?.user)) &&
+              router.route != link.href
+          ).map((link, i) => (
             <LinkItem
               key={i}
               title={link.name}
@@ -93,7 +98,7 @@ const LeftSidebar = ({ show, setShow }: DisplayProps) => {
           ))}
         </ul>
         <li className="mb-2">
-          <div className="flex items-center justify-center gap-3">
+          <div className="mx-2 flex items-center justify-center gap-3">
             {SOCIAL_LINKS.map((link) => (
               <LinkIconItem
                 key={link.name}

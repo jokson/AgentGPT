@@ -1,18 +1,18 @@
-import type { DisplayProps } from "./Sidebar";
-import Sidebar from "./Sidebar";
-import React from "react";
+import type { FC } from "react";
 import { FaBars } from "react-icons/fa";
+import type { Edge, Node } from "reactflow";
+
+import { SidebarTransition } from "./Sidebar";
+import type { createNodeType, updateNodeType } from "../../hooks/useWorkflow";
+import { findParents } from "../../services/graph-utils";
 import type { IOField, NodeBlockDefinition } from "../../services/workflow/node-block-definitions";
 import {
   getNodeBlockDefinitionFromNode,
   getNodeBlockDefinitions,
 } from "../../services/workflow/node-block-definitions";
-import type { createNodeType, updateNodeType } from "../../hooks/useWorkflow";
+import { useConfigStore } from "../../stores/configStore";
 import type { WorkflowEdge, WorkflowNode } from "../../types/workflow";
-import type { Edge, Node } from "reactflow";
-import TextButton from "../TextButton";
-import { findParents } from "../../services/graph-utils";
-import InputWithSuggestions from "../../ui/InputWithSuggestions";
+import WorkflowSidebarInput from "../../ui/WorkflowSidebarInput";
 
 type WorkflowControls = {
   selectedNode: Node<WorkflowNode> | undefined;
@@ -22,40 +22,32 @@ type WorkflowControls = {
   updateNode: updateNodeType;
 };
 
-type WorkflowSidebarProps = DisplayProps & {
-  controls: WorkflowControls;
-};
+const WorkflowSidebar: FC<WorkflowControls> = (controls) => {
+  const { layout, setLayout } = useConfigStore();
 
-// Wrapper HOC to curry the createNode function
-export const getWorkflowSidebar = (controls: WorkflowControls) => {
-  const WorkflowSidebarHOC = ({ show, setShow }: DisplayProps) => (
-    <WorkflowSidebar show={show} setShow={setShow} controls={controls} />
-  );
-  WorkflowSidebarHOC.displayName = "WorkflowSidebarHOC";
-  return WorkflowSidebarHOC;
-};
-
-const WorkflowSidebar = ({ show, setShow, controls }: WorkflowSidebarProps) => {
-  const [tab, setTab] = React.useState<"inspect" | "create">("inspect");
+  const setShow = (show: boolean) => {
+    setLayout({ showRightSidebar: show });
+  };
 
   return (
-    <Sidebar show={show} setShow={setShow} side="right">
-      <div className="text-color-primary flex h-screen flex-col gap-2">
+    <SidebarTransition
+      show={layout.showRightSidebar}
+      side="right"
+      className="mr-3.5 rounded-lg bg-white p-6 shadow-xl shadow-stone-400"
+    >
+      <div className="text-color-primary flex h-[80vh] w-64 flex-col gap-2  bg-white">
         <div className="flex flex-row items-center gap-1">
           <button
             className="neutral-button-primary rounded-md border-none transition-all"
-            onClick={() => setShow(!show)}
+            onClick={() => setShow(false)}
           >
-            <FaBars size="15" className="z-20 m-2" />
+            <FaBars size="15" className="z-20 mr-2 text-black" />
           </button>
-          <TextButton onClick={() => setTab("inspect")}>Inspect</TextButton>
-          <TextButton onClick={() => setTab("create")}>Create</TextButton>
           <div />
         </div>
-        {tab === "inspect" && <InspectSection {...controls} />}
-        {tab === "create" && <CreateSection createNode={controls.createNode} />}
+        <InspectSection {...controls} />
       </div>
-    </Sidebar>
+    </SidebarTransition>
   );
 };
 
@@ -68,7 +60,11 @@ type InspectSectionProps = {
 
 const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSectionProps) => {
   if (selectedNode == undefined)
-    return <div>No components selected. Click on a component to select it</div>;
+    return (
+      <div className="text-sm font-light text-black">
+        No components selected. Click on a component to select it
+      </div>
+    );
 
   const definition = getNodeBlockDefinitionFromNode(selectedNode);
 
@@ -83,12 +79,10 @@ const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSecti
     if (definition == undefined) return [];
 
     const outputFields = definition.output_fields;
-    return outputFields.map((outputField) => {
-      return {
-        key: `{{${ancestorNode.id}.${outputField.name}}}`,
-        value: `${definition.type}.${outputField.name}`,
-      };
-    });
+    return outputFields.map((outputField) => ({
+      key: `{{${ancestorNode.id}.${outputField.name}}}`,
+      value: `${definition.type}.${outputField.name}`,
+    }));
   });
 
   const handleAutocompleteClick = (inputField: IOField, field: { key: string; value: string }) => {
@@ -101,21 +95,40 @@ const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSecti
   return (
     <>
       <div>
-        <p className="text-lg font-bold">{definition?.type}</p>
-        <p className="mb-3 text-sm font-thin">{definition?.description}</p>
+        <p className="font-inter text-lg font-bold text-black">{definition?.type}</p>
+        <p className="mb-3 font-inter text-sm font-light text-black">{definition?.description}</p>
       </div>
-      {definition?.input_fields.map((inputField) => (
+      <hr className="border-neutral-500" />
+      <div className="font-inter font-bold text-black">Inputs</div>
+      {definition?.input_fields.map((inputField: IOField) => (
         <div key={definition?.type + inputField.name}>
-          <InputWithSuggestions
-            label={inputField.name}
-            name={inputField.name}
-            helpText={inputField.description}
-            value={selectedNode.data.block.input[inputField.name] || ""}
-            onChange={(e) => handleValueChange(inputField.name, e.target.value)}
+          <WorkflowSidebarInput
+            inputField={inputField}
+            node={selectedNode}
+            onChange={(val) => handleValueChange(inputField.name, val)}
             suggestions={outputFields}
           />
         </div>
       ))}
+      {definition?.input_fields.length == 0 && (
+        <p className="font-inter text-sm text-black">This node does not take any input.</p>
+      )}
+      <hr className="border-neutral-500" />
+      <div className="font-bold">Outputs</div>
+      <div className="flex flex-col gap-2">
+        {definition?.output_fields.map((outputField: IOField) => (
+          <div key={definition?.type + outputField.name}>
+            <p>
+              <span className="text-sm font-bold">{outputField.name}:</span>{" "}
+              <span className="text-sm">{outputField.type}</span>
+            </p>
+            <p className="text-sm font-thin">{outputField.description}</p>
+          </div>
+        ))}
+        {definition?.output_fields.length == 0 && (
+          <p className="text-sm font-thin">This node does not have any output.</p>
+        )}
+      </div>
     </>
   );
 };
@@ -145,23 +158,21 @@ type NodeBlockProps = {
 const NodeBlock = ({ definition, createNode }: NodeBlockProps) => {
   return (
     <div
-      className="flex cursor-pointer flex-row gap-2 rounded-md border border-white/20 p-2 hover:bg-white/10"
+      className="flex cursor-pointer flex-col gap-2 rounded-md border border-white/20 p-2 hover:bg-white/10 "
       onClick={() => {
         const input: Record<string, string> = {};
         for (const field of definition.input_fields) {
           input[field.name] = "";
         }
 
-        createNode({ input: input, type: definition.type });
+        createNode({ input: input, type: definition.type }, { x: 0, y: 0 });
       }}
     >
-      <div className="h-[30px] w-[30px]">
-        <img src={definition.image_url} alt={definition.type} width={30} />
-      </div>
-      <div>
+      <div className="flex items-center gap-2">
+        <definition.icon size={17} />
         <h3 className="font-medium">{definition.type}</h3>
-        <p className="text-sm font-thin">{definition.description}</p>
       </div>
+      <p className="text-sm font-thin">{definition.description}</p>
     </div>
   );
 };

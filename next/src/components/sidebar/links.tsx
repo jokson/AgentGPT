@@ -1,4 +1,7 @@
+import { User } from "next-auth";
+import type { IconType } from "react-icons";
 import {
+  FaBusinessTime,
   FaCog,
   FaDiscord,
   FaFileCode,
@@ -9,16 +12,17 @@ import {
   FaTwitter,
   FaWater,
 } from "react-icons/fa";
-import type { IconType } from "react-icons";
-import { env } from "../../env/client.mjs";
 
 type LinkMetadata = {
   name: string;
   href: string;
   icon: IconType;
-  badge?: string;
+  badge?: {
+    text: string;
+    className?: string;
+  };
   className?: string;
-  enabled: boolean;
+  enabled: boolean | ((user?: User) => boolean);
 };
 export const PAGE_LINKS: LinkMetadata[] = [
   {
@@ -32,17 +36,22 @@ export const PAGE_LINKS: LinkMetadata[] = [
     name: "Flows",
     href: "/workflow",
     icon: FaWater,
-    badge: "Alpha",
     className: "transition-transform group-hover:scale-110",
-    enabled: env.NEXT_PUBLIC_EXPERIMENTAL_FF_ENABLED,
+    enabled: (user) => !!user && user.organizations.length > 0,
+    badge: {
+      text: "Alpha",
+      className: "bg-gradient-to-tr from-purple-500 to-sky-600",
+    },
   },
   {
     name: "Templates",
     href: "/templates",
     icon: FaFileCode,
-    badge: "New",
     className: "transition-transform group-hover:scale-110",
     enabled: true,
+    badge: {
+      text: "New",
+    },
   },
   {
     name: "Help",
@@ -58,6 +67,13 @@ export const PAGE_LINKS: LinkMetadata[] = [
     className: "transition-transform group-hover:rotate-90",
     enabled: true,
   },
+  {
+    name: "Organization",
+    href: "/organization",
+    icon: FaBusinessTime,
+    className: "transition-transform group-hover:scale-110",
+    enabled: (user) => !!user && user.organizations.length > 0
+  }
 ];
 
 export const SOCIAL_LINKS: LinkMetadata[] = [

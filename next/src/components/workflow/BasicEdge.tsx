@@ -1,12 +1,13 @@
 import React, { memo } from "react";
 import type { EdgeProps } from "reactflow";
 import { BaseEdge, getBezierPath } from "reactflow";
+
 import type { WorkflowEdge } from "../../types/workflow";
 
 const edgeColors = {
   running: "yellow",
   success: "green",
-  failure: "red",
+  error: "red",
 };
 
 const CustomEdge = ({
@@ -31,16 +32,15 @@ const CustomEdge = ({
   });
 
   return (
-    <>
-      <BaseEdge
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{
-          stroke: props.data?.status ? edgeColors[props.data.status] || "black" : "black",
-          transition: "stroke 0.2s ease",
-        }}
-      />
-    </>
+    <BaseEdge
+      path={edgePath}
+      markerEnd={markerEnd}
+      style={{
+        stroke: !!props?.data?.status ? edgeColors[props.data.status] : undefined,
+        transition: "stroke 0.2s ease",
+        strokeWidth: 2,
+      }}
+    />
   );
 };
 

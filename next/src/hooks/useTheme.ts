@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { useThemeStore } from "../stores";
 import type { Theme } from "../types";
 
@@ -21,8 +22,8 @@ export const handleTheme = (theme: Theme) => {
   }
 };
 
-export const useTheme = () => {
-  const [_theme, _setTheme] = useState<Theme>("dark");
+export const useTheme = (initial: Theme = "dark") => {
+  const [_theme, _setTheme] = useState<Theme>(initial);
   const theme = useThemeStore.use.theme();
   const setTheme = useThemeStore.use.setTheme();
 

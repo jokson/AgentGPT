@@ -1,10 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 import { z } from "zod";
 
 import { get } from "../services/fetch-utils";
 import { useAgentStore } from "../stores";
-
 
 const Tool = z.object({
   name: z.string(),
@@ -33,10 +31,10 @@ const loadTools = async (key: string) => {
     const obj = z.array(ActiveToolSchema).parse(JSON.parse(data ?? ""));
     activeTools = allTools.tools.map((db_tool) => {
       const tool = obj.find((t) => t.name === db_tool.name);
-      return tool ?? { ...db_tool, active: true };
+      return tool ?? { ...db_tool, active: false };
     });
   } catch (error) {
-    activeTools = allTools.tools.map((toolModel) => ({ ...toolModel, active: true }));
+    activeTools = allTools.tools.map((toolModel) => ({ ...toolModel, active: false }));
   }
 
   return activeTools;
@@ -47,7 +45,6 @@ const save = (key: string, data: object) => {
 };
 
 export function useTools() {
-  const { data: Session } = useSession();
   const setTools = useAgentStore.use.setTools();
 
   const queryClient = useQueryClient();

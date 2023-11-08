@@ -1,7 +1,7 @@
 import platform
 from pathlib import Path
 from tempfile import gettempdir
-from typing import List, Optional, Literal, Union
+from typing import List, Literal, Optional, Union
 
 from pydantic import BaseSettings
 from yarl import URL
@@ -54,21 +54,15 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_base: str = "https://api.openai.com/v1"
     openai_api_key: str = "<Should be updated via env>"
-    secondary_openai_api_key: Optional[str] = None
+    openai_api_version: str = "2023-08-01-preview"
+    azure_openai_deployment_name: str = "<Should be updated via env if using azure>"
 
+    # Helicone
     helicone_api_base: str = "https://oai.hconeai.com/v1"
     helicone_api_key: Optional[str] = None
 
-    # Azure OpenAI
-    azure_openai_api_version: str = "2023-06-01-preview"
-    azure_openai_api_key: str = ""
-    azure_openai_api_base: str = ""
-    azure_openai_deployment_name: str = ""
-
     replicate_api_key: Optional[str] = None
     serp_api_key: Optional[str] = None
-    scrapingbee_api_key: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
 
     # Frontend URL for CORS
     frontend_url: str = "http://localhost:3000"
@@ -76,16 +70,12 @@ class Settings(BaseSettings):
 
     # Variables for the database
     db_host: str = "localhost"
-    db_port: int = 3307
+    db_port: int = 3308
     db_user: str = "reworkd_platform"
     db_pass: str = "reworkd_platform"
     db_base: str = "reworkd_platform"
     db_echo: bool = False
     db_ca_path: Optional[str] = None
-
-    # Variables for Weaviate db.
-    vector_db_url: Optional[str] = None
-    vector_db_api_key: Optional[str] = None
 
     # Variables for Pinecone DB
     pinecone_api_key: Optional[str] = None
@@ -111,13 +101,10 @@ class Settings(BaseSettings):
     ff_mock_mode_enabled: bool = False  # Controls whether calls are mocked
     max_loops: int = 25  # Maximum number of loops to run
 
-    # Settings for slack
-    slack_client_id: str = ""
-    slack_client_secret: str = ""
-    slack_redirect_uri: str = ""
-
-    # Settings for s3
-    s3_bucket_name: str = "changeme"
+    # Settings for sid
+    sid_client_id: Optional[str] = None
+    sid_client_secret: Optional[str] = None
+    sid_redirect_uri: Optional[str] = None
 
     @property
     def kafka_consumer_group(self) -> str:
@@ -164,22 +151,21 @@ class Settings(BaseSettings):
         )
 
     @property
-    def azure_openai_enabled(self) -> bool:
-        return all(
-            [
-                self.azure_openai_api_base,
-                self.azure_openai_deployment_name,
-                self.azure_openai_api_version,
-                self.azure_openai_api_key,
-            ]
-        )
-
-    @property
     def helicone_enabled(self) -> bool:
         return all(
             [
                 self.helicone_api_base,
                 self.helicone_api_key,
+            ]
+        )
+
+    @property
+    def sid_enabled(self) -> bool:
+        return all(
+            [
+                self.sid_client_id,
+                self.sid_client_secret,
+                self.sid_redirect_uri,
             ]
         )
 

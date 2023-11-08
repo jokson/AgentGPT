@@ -1,36 +1,33 @@
+import { useSession } from "next-auth/react";
 import React from "react";
 
-import { ChatMessage } from "./ChatMessage";
 import { ExampleAgentButton } from "./ExampleAgentButton";
-import { MESSAGE_TYPE_SYSTEM } from "../../types/message";
+import { useSID } from "../../hooks/useSID";
 import FadeIn from "../motions/FadeIn";
-
 
 type ExampleAgentsProps = {
   setAgentRun?: (name: string, goal: string) => void;
+  setShowSignIn: (show: boolean) => void;
 };
-const ExampleAgents = ({ setAgentRun }: ExampleAgentsProps) => {
+
+const ExampleAgents = ({ setAgentRun, setShowSignIn }: ExampleAgentsProps) => {
+  const { data: session } = useSession();
+  const sid = useSID(session);
+
   return (
     <>
-      <FadeIn delay={0.8} duration={0.5}>
-        <ChatMessage
-          message={{
-            type: MESSAGE_TYPE_SYSTEM,
-            value:
-              "👉 Create an agent by adding a name / goal, and hitting deploy! Try our examples below!",
-          }}
-        />
-      </FadeIn>
       <FadeIn delay={0.9} duration={0.5}>
-        <div className="m-2 flex flex-col justify-between gap-2 sm:m-4 sm:flex-row">
-          <ExampleAgentButton name="PlatformerGPT 🎮" setAgentRun={setAgentRun}>
-            Write some code to make a platformer game.
-          </ExampleAgentButton>
+        <div className="my-2 grid grid-cols-1 items-stretch gap-2 sm:my-4 sm:grid-cols-3">
           <ExampleAgentButton name="TravelGPT 🌴" setAgentRun={setAgentRun}>
-            Plan a detailed trip to Hawaii.
+            Plan a detailed trip to Hawaii
           </ExampleAgentButton>
-          <ExampleAgentButton name="ResearchGPT 📜" setAgentRun={setAgentRun}>
-            Create a comprehensive report of the Nike company
+
+          <ExampleAgentButton name="CalculusGPT 📚" setAgentRun={setAgentRun}>
+            Create a study plan for an intro to Calculus exam
+          </ExampleAgentButton>
+
+          <ExampleAgentButton name="HustleGPT 🚀" setAgentRun={setAgentRun}>
+            Create a comprehensive report for how to scale a startup to 1000 customers
           </ExampleAgentButton>
         </div>
       </FadeIn>

@@ -10,7 +10,9 @@ from langchain.schema import HumanMessage
 from loguru import logger
 from pydantic import ValidationError
 
+from reworkd_platform.db.crud.oauth import OAuthCrud
 from reworkd_platform.schemas.agent import ModelSettings
+from reworkd_platform.schemas.user import UserBase
 from reworkd_platform.services.tokenizer.token_service import TokenService
 from reworkd_platform.web.api.agent.agent_service.agent_service import AgentService
 from reworkd_platform.web.api.agent.analysis import Analysis, AnalysisArguments
@@ -36,7 +38,6 @@ from reworkd_platform.web.api.agent.tools.tools import (
 )
 from reworkd_platform.web.api.agent.tools.utils import summarize
 from reworkd_platform.web.api.errors import OpenAIError
-from reworkd_platform.web.api.memory.memory import AgentMemory
 
 
 class OpenAIAgentService(AgentService):
@@ -44,15 +45,17 @@ class OpenAIAgentService(AgentService):
         self,
         model: WrappedChatOpenAI,
         settings: ModelSettings,
-        agent_memory: AgentMemory,
         token_service: TokenService,
         callbacks: Optional[List[AsyncCallbackHandler]],
+        user: UserBase,
+        oauth_crud: OAuthCrud,
     ):
         self.model = model
-        self.agent_memory = agent_memory
         self.settings = settings
         self.token_service = token_service
         self.callbacks = callbacks
+        self.user = user
+        self.oauth_crud = oauth_crud
 
     async def start_goal_agent(self, *, goal: str) -> List[str]:
         prompt = ChatPromptTemplate.from_messages(
@@ -80,16 +83,13 @@ class OpenAIAgentService(AgentService):
         task_output_parser = TaskOutputParser(completed_tasks=[])
         tasks = parse_with_handling(task_output_parser, completion)
 
-        with self.agent_memory as memory:
-            memory.reset_class()
-            memory.add_tasks(tasks)
-
         return tasks
 
     async def analyze_task_agent(
         self, *, goal: str, task: str, tool_names: List[str]
     ) -> Analysis:
-        functions = list(map(get_tool_function, get_user_tools(tool_names)))
+        user_tools = await get_user_tools(tool_names, self.user, self.oauth_crud)
+        functions = list(map(get_tool_function, user_tools))
         prompt = analyze_task_prompt.format_prompt(
             goal=goal,
             task=task,
@@ -121,7 +121,7 @@ class OpenAIAgentService(AgentService):
                 **analysis_arguments.dict(),
             )
         except (OpenAIError, ValidationError):
-            return Analysis.get_default_analysis()
+            return Analysis.get_default_analysis(task)
 
     async def execute_task_agent(
         self,
@@ -136,7 +136,11 @@ class OpenAIAgentService(AgentService):
 
         tool_class = get_tool_from_name(analysis.action)
         return await tool_class(self.model, self.settings.language).call(
-            goal, task, analysis.arg
+            goal,
+            task,
+            analysis.arg,
+            self.user,
+            self.oauth_crud,
         )
 
     async def create_tasks_agent(
@@ -169,23 +173,7 @@ class OpenAIAgentService(AgentService):
         )
 
         previous_tasks = (completed_tasks or []) + tasks
-        tasks = [completion] if completion not in previous_tasks else []
-
-        unique_tasks = []
-        with self.agent_memory as memory:
-            for task in tasks:
-                similar_tasks = memory.get_similar_tasks(task)
-
-                # Check if similar tasks are found
-                if not similar_tasks:
-                    unique_tasks.append(task)
-                else:
-                    logger.info(f"Similar tasks to '{task}' found: {similar_tasks}")
-
-            if unique_tasks:
-                memory.add_tasks(unique_tasks)
-
-        return unique_tasks
+        return [completion] if completion not in previous_tasks else []
 
     async def summarize_task_agent(
         self,

@@ -1,27 +1,13 @@
-import clsx from "clsx";
-import { AnimatePresence, motion } from "framer-motion";
 import { type GetStaticProps, type NextPage } from "next";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import React, { useEffect, useRef } from "react";
-import { FaCog, FaRobot, FaStar } from "react-icons/fa";
 
 import nextI18NextConfig from "../../next-i18next.config.js";
-import AppTitle from "../components/AppTitle";
-import Button from "../components/Button";
-import AgentControls from "../components/console/AgentControls";
-import { ChatMessage } from "../components/console/ChatMessage";
-import ChatWindow from "../components/console/ChatWindow";
-import { ChatWindowTitle } from "../components/console/ChatWindowTitle";
-import ExampleAgents from "../components/console/ExampleAgents";
-import Summarize from "../components/console/SummarizeButton";
 import HelpDialog from "../components/dialog/HelpDialog";
 import { SignInDialog } from "../components/dialog/SignInDialog";
-import { ToolsDialog } from "../components/dialog/ToolsDialog";
-import TaskSidebar from "../components/drawer/TaskSidebar";
-import Input from "../components/Input";
-import Expand from "../components/motions/expand";
-import FadeIn from "../components/motions/FadeIn";
+import Chat from "../components/index/chat";
+import Landing from "../components/index/landing";
 import { useAgent } from "../hooks/useAgent";
 import { useAuth } from "../hooks/useAuth";
 import { useSettings } from "../hooks/useSettings";
@@ -53,44 +39,39 @@ const Home: NextPage = () => {
 
   const agent = useAgentStore.use.agent();
 
-  const fullscreen = agent !== null;
   const { session } = useAuth();
   const nameInput = useAgentInputStore.use.nameInput();
   const setNameInput = useAgentInputStore.use.setNameInput();
   const goalInput = useAgentInputStore.use.goalInput();
   const setGoalInput = useAgentInputStore.use.setGoalInput();
-  const [chatInput, setChatInput] = React.useState("");
   const { settings } = useSettings();
 
   const [showSignInDialog, setShowSignInDialog] = React.useState(false);
-  const [showToolsDialog, setShowToolsDialog] = React.useState(false);
   const agentUtils = useAgent();
 
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  const goalInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    nameInputRef?.current?.focus();
+    goalInputRef?.current?.focus();
   }, []);
 
   const setAgentRun = (newName: string, newGoal: string) => {
     setNameInput(newName);
     setGoalInput(newGoal);
-    handlePlay(newName, newGoal);
+    handlePlay(newGoal);
   };
 
   const disableStartAgent =
     (agent !== null && !["paused", "stopped"].includes(agentLifecycle)) ||
-    isEmptyOrBlank(nameInput) ||
     isEmptyOrBlank(goalInput);
 
-  const handlePlay = (name: string, goal: string) => {
+  const handlePlay = (goal: string) => {
     if (agentLifecycle === "stopped") handleRestart();
-    else if (name.trim() === "" || goal.trim() === "") return;
-    else handleNewAgent(name.trim(), goal.trim());
+    else handleNewAgent(goal.trim());
   };
 
-  const handleNewAgent = (name: string, goal: string) => {
+  const handleNewAgent = (goal: string) => {
     if (session === null) {
-      storeAgentDataInLocalStorage(name, goal);
+      storeAgentDataInLocalStorage("", goal);
       setShowSignInDialog(true);
       return;
     }
@@ -100,13 +81,12 @@ const Home: NextPage = () => {
       return;
     }
 
-    const model = new DefaultAgentRunModel(name.trim(), goal.trim());
+    const model = new DefaultAgentRunModel(goal.trim());
     const messageService = new MessageService(addMessage);
     const agentApi = new AgentApi({
       model_settings: toApiModelSettings(settings, session),
-      name: name,
       goal: goal,
-      session,
+      session: session,
       agentUtils: agentUtils,
     });
     const newAgent = new AutonomousAgent(
@@ -140,7 +120,7 @@ const Home: NextPage = () => {
         localStorage.removeItem("agentData");
       }
     }
-  }, [session]);
+  }, [session, setGoalInput, setNameInput]);
 
   const handleRestart = () => {
     resetAllMessageSlices();
@@ -148,141 +128,51 @@ const Home: NextPage = () => {
     resetAllAgentSlices();
   };
 
-  const handleKeyPress = (
-    e: React.KeyboardEvent<HTMLInputElement> | React.KeyboardEvent<HTMLTextAreaElement>
-  ) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     // Only Enter is pressed, execute the function
     if (e.key === "Enter" && !disableStartAgent && !e.shiftKey) {
-      handlePlay(nameInput, goalInput);
+      handlePlay(goalInput);
     }
   };
 
   return (
-    <DashboardLayout rightSidebar={<TaskSidebar />}>
+    <DashboardLayout
+      onReload={() => {
+        agent?.stopAgent();
+        handleRestart();
+      }}
+    >
       <HelpDialog />
-      <ToolsDialog show={showToolsDialog} close={() => setShowToolsDialog(false)} />
 
-      <SignInDialog show={showSignInDialog} close={() => setShowSignInDialog(false)} />
+      <SignInDialog show={showSignInDialog} setOpen={setShowSignInDialog} />
       <div id="content" className="flex min-h-screen w-full items-center justify-center">
         <div
           id="layout"
-          className={clsx(
-            "flex h-screen w-full max-w-screen-xl flex-col items-center gap-1 p-2 pt-10 sm:gap-3 sm:p-4",
-            agent !== null ? "pt-11" : "pt-3"
-          )}
+          className="relative flex h-screen w-full max-w-screen-md flex-col items-center justify-center gap-5 overflow-hidden p-2 py-10 sm:gap-3 sm:p-4"
         >
-          {
-            <AnimatePresence>
-              {!fullscreen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "fit-content" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.5, type: "easeInOut" }}
-                >
-                  <AppTitle />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          }
-          <Expand className="flex w-full flex-grow overflow-hidden">
-            <ChatWindow
+          {agent !== null ? (
+            <Chat
               messages={messages}
-              title={<ChatWindowTitle model={settings.customModelName} />}
-              chatControls={
-                agent
-                  ? {
-                      value: chatInput,
-                      onChange: (value: string) => {
-                        setChatInput(value);
-                      },
-                      handleChat: async () => {
-                        const currentInput = chatInput;
-                        setChatInput("");
-                        await agent?.chat(currentInput);
-                      },
-                      loading: tasks.length == 0 || chatInput === "",
-                    }
-                  : undefined
-              }
-            >
-              {messages.length === 0 && <ExampleAgents setAgentRun={setAgentRun} />}
-              {messages.map((message, index) => {
-                return (
-                  <FadeIn key={`${index}-${message.type}`}>
-                    <ChatMessage message={message} />
-                  </FadeIn>
-                );
-              })}
-              <Summarize />
-            </ChatWindow>
-          </Expand>
-
-          <FadeIn
-            delay={0}
-            initialY={30}
-            duration={1}
-            className="flex w-full flex-col items-center gap-2"
-          >
-            <AnimatePresence>
-              {!fullscreen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "fit-content" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.5, type: "easeInOut" }}
-                  className="flex w-full flex-col gap-2"
-                >
-                  <div className="flex w-full flex-row items-end gap-2 md:items-center">
-                    <Input
-                      inputRef={nameInputRef}
-                      left={
-                        <>
-                          <FaRobot />
-                          <span className="ml-2">{`${t("AGENT_NAME")}`}</span>
-                        </>
-                      }
-                      value={nameInput}
-                      disabled={agent != null}
-                      onChange={(e) => setNameInput(e.target.value)}
-                      onKeyDown={(e) => handleKeyPress(e)}
-                      placeholder="AgentGPT"
-                      type="text"
-                    />
-                    <Button
-                      ping
-                      onClick={() => setShowToolsDialog(true)}
-                      className="border-white/20 bg-gradient-to-t from-sky-500 to-sky-600 transition-all hover:bg-gradient-to-t hover:from-sky-400 hover:to-sky-600"
-                    >
-                      <p className="mr-3">Tools</p>
-                      <FaCog />
-                    </Button>
-                  </div>
-                  <Input
-                    left={
-                      <>
-                        <FaStar />
-                        <span className="ml-2">{`${t("LABEL_AGENT_GOAL")}`}</span>
-                      </>
-                    }
-                    disabled={agent != null}
-                    value={goalInput}
-                    onChange={(e) => setGoalInput(e.target.value)}
-                    onKeyDown={(e) => handleKeyPress(e)}
-                    placeholder={`${t("PLACEHOLDER_AGENT_GOAL")}`}
-                    type="textarea"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <AgentControls
-              disablePlay={disableStartAgent}
-              lifecycle={agentLifecycle}
-              handlePlay={() => handlePlay(nameInput, goalInput)}
-              handlePause={() => agent?.pauseAgent()}
-              handleStop={() => agent?.stopAgent()}
+              disableStartAgent={disableStartAgent}
+              handlePlay={handlePlay}
+              nameInput={nameInput}
+              goalInput={goalInput}
+              setShowSignInDialog={setShowSignInDialog}
+              setAgentRun={setAgentRun}
             />
-          </FadeIn>
+          ) : (
+            <Landing
+              messages={messages}
+              disableStartAgent={disableStartAgent}
+              handlePlay={() => handlePlay(goalInput)}
+              handleKeyPress={handleKeyPress}
+              goalInputRef={goalInputRef}
+              goalInput={goalInput}
+              setGoalInput={setGoalInput}
+              setShowSignInDialog={setShowSignInDialog}
+              setAgentRun={setAgentRun}
+            />
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -27,6 +27,17 @@ export default class OauthApi {
       this.organizationId
     );
   }
+
+  async uninstall(provider: string) {
+    return await get(
+      `/api/auth/${provider}/uninstall`,
+      z.object({
+        success: z.boolean(),
+      }),
+      this.accessToken,
+      this.organizationId
+    );
+  }
   // TODO: decouple this
   async get_info(provider: string) {
     return await get(
@@ -37,6 +48,17 @@ export default class OauthApi {
           id: z.string(),
         })
         .array(),
+      this.accessToken,
+      this.organizationId
+    );
+  }
+
+  async get_info_sid() {
+    return await get(
+      `/api/auth/sid/info`,
+      z.object({
+        connected: z.boolean(),
+      }),
       this.accessToken,
       this.organizationId
     );
